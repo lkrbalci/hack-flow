@@ -1,26 +1,88 @@
 @import "tailwindcss";
 
 :root {
-  --background: #F5F5F0;
-  --foreground: #2F554F;
+  --background: #F5E8C7;
+  /* Creamy off-white for a soft, retro light mode */
+  --foreground: #2A2F4F;
+  /* Soft dark blue-gray for text, inspired by Borland's dark tones */
+  --accent-1: #7AC7C4;
+  /* Pale cyan for buttons, highlights, or syntax */
+  --accent-2: #F4A261;
+  /* Warm peach for menus or hover effects */
+  --accent-3: #E76F51;
+  /* Soft coral for alerts or errors */
+  --panel-bg: #D9C2B7;
+  /* Light muted beige for panels, a softer take on 90s grays */
+  --border: #3C6E71;
+  /* Dark teal for borders or shadows */
+  --font-sans: "IBM Plex Sans", Arial, Helvetica, sans-serif;
+  --font-mono: "IBM Plex Mono", "Courier New", monospace;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-accent-1: var(--accent-1);
+  --color-accent-2: var(--accent-2);
+  --color-accent-3: var(--accent-3);
+  --color-panel-bg: var(--panel-bg);
+  --color-border: var(--border);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #2F554F;
-    --foreground: #F5F5F0;
+    --background: #2A2F4F;
+    /* Soft dark blue-gray, evoking Borland's dark UI */
+    --foreground: #F5E8C7;
+    /* Creamy off-white for text, softening the contrast */
+    --accent-1: #7AC7C4;
+    /* Pale cyan, consistent for highlights */
+    --accent-2: #F4A261;
+    /* Warm peach, consistent for menus */
+    --accent-3: #E76F51;
+    /* Soft coral, consistent for alerts */
+    --panel-bg: #6D8299;
+    /* Muted purple for panels, a nod to 90s grays */
+    --border: #3C6E71;
+    /* Dark teal, consistent for borders */
+    --font-sans: "IBM Plex Sans", Arial, Helvetica, sans-serif;
+    --font-mono: "IBM Plex Mono", "Courier New", monospace;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+}
+
+/* Optional: Add retro-inspired styling for specific elements */
+button,
+.btn {
+  background-color: var(--color-accent-1);
+  border: 1px solid var(--color-border);
+  color: var(--color-foreground);
+  font-family: var(--font-mono);
+  padding: 0.5rem 1rem;
+  transition: background-color 0.2s ease;
+}
+
+button:hover,
+.btn:hover {
+  background-color: var(--color-accent-2);
+}
+
+.alert {
+  background-color: var(--color-accent-3);
+  border: 1px solid var(--color-border);
+  color: var(--color-foreground);
+  padding: 0.5rem;
+}
+
+.panel {
+  background-color: var(--color-panel-bg);
+  border: 1px solid var(--color-border);
+  padding: 1rem;
 }
