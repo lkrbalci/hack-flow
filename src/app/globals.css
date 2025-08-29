@@ -2,19 +2,12 @@
 
 :root {
   --background: #F5E8C7;
-  /* Creamy off-white for a soft, retro light mode */
   --foreground: #2A2F4F;
-  /* Soft dark blue-gray for text, inspired by Borland's dark tones */
   --accent-1: #7AC7C4;
-  /* Pale cyan for buttons, highlights, or syntax */
   --accent-2: #F4A261;
-  /* Warm peach for menus or hover effects */
   --accent-3: #E76F51;
-  /* Soft coral for alerts or errors */
   --panel-bg: #D9C2B7;
-  /* Light muted beige for panels, a softer take on 90s grays */
   --border: #3C6E71;
-  /* Dark teal for borders or shadows */
   --font-sans: "IBM Plex Sans", Arial, Helvetica, sans-serif;
   --font-mono: "IBM Plex Mono", "Courier New", monospace;
 }
@@ -34,19 +27,12 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #2A2F4F;
-    /* Soft dark blue-gray, evoking Borland's dark UI */
     --foreground: #F5E8C7;
-    /* Creamy off-white for text, softening the contrast */
     --accent-1: #7AC7C4;
-    /* Pale cyan, consistent for highlights */
     --accent-2: #F4A261;
-    /* Warm peach, consistent for menus */
     --accent-3: #E76F51;
-    /* Soft coral, consistent for alerts */
     --panel-bg: #6D8299;
-    /* Muted purple for panels, a nod to 90s grays */
     --border: #3C6E71;
-    /* Dark teal, consistent for borders */
     --font-sans: "IBM Plex Sans", Arial, Helvetica, sans-serif;
     --font-mono: "IBM Plex Mono", "Courier New", monospace;
   }
@@ -58,7 +44,6 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Optional: Add retro-inspired styling for specific elements */
 button,
 .btn {
   background-color: var(--color-accent-1);
