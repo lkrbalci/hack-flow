@@ -1,10 +1,10 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { account } from "../lib/appwrite";
 import { ID } from "appwrite";
 import { LoginCredentials, RegisterCredentials } from "../types/auth";
+import { toast } from "sonner";
 
 const loginUser = async (credentials: LoginCredentials) => {
   return account.createEmailPasswordSession({
@@ -23,7 +23,7 @@ export function useLogin() {
     },
     onError: (error) => {
       console.error("Login failed:", error);
-      alert("Login failed. Please check your credentials.");
+      toast("Login failed. Please check your credentials.");
     },
   });
 }
@@ -51,7 +51,7 @@ export function useRegister() {
     },
     onError: (error) => {
       console.error("Registration failed:", error);
-      alert("Registration failed. The user may already exist.");
+      toast("Registration failed. The user may already exist.");
     },
   });
 }
@@ -70,7 +70,7 @@ export function useLogout() {
     },
     onError: (error) => {
       console.error("Logout failed:", error);
-      alert("Logout failed. Please try again.");
+      toast("Logout failed. Please try again.");
     },
   });
 }
