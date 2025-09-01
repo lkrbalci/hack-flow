@@ -63,7 +63,7 @@ export function useRegister() {
     mutationFn: registerUser,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["currentUser"] });
-      toast("Account created! Welcome aboard!");
+      toast("Account created!");
     },
     onError: (error) => {
       if (error instanceof AppwriteException) {
