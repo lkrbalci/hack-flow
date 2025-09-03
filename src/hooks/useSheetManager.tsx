@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-type SheetType = "task" | "project" | null;
+type SheetType = "task" | "project" | "time-tracker" | null;
 
 export function useSheetManager() {
   const [sheet, setSheet] = useState<{

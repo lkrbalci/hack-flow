@@ -6,6 +6,7 @@ import { useSheetManager } from "@/hooks/useSheetManager";
 import { TaskForm } from "@/components/forms/TaskForm";
 import { ProjectForm } from "@/components/forms/ProjectForm";
 import { Button } from "@/components/ui/button";
+import { TimeTrackerForm } from "@/components/forms/TimeTrackerForm";
 
 export default function Home() {
   const { sheet, openSheet, closeSheet } = useSheetManager();
@@ -31,6 +32,8 @@ export default function Home() {
             ? "Add New Task"
             : sheet.type === "project"
             ? "Add New Project"
+            : sheet.type === "time-tracker"
+            ? "Configure Time Tracker"
             : ""
         }
       >
@@ -40,9 +43,13 @@ export default function Home() {
         {sheet.type === "project" && (
           <ProjectForm onSubmit={closeSheet} onCancel={closeSheet} />
         )}
+        {sheet.type === "time-tracker" && (
+          <TimeTrackerForm onSubmit={closeSheet} onCancel={closeSheet} />
+        )}
       </DynamicSheet>
       <Button onClick={() => openSheet("task")}>Open Sheet</Button>
       <Button onClick={() => openSheet("project")}>Open Sheet</Button>
+      <Button onClick={() => openSheet("time-tracker")}>Open Sheet</Button>
     </main>
   );
 }

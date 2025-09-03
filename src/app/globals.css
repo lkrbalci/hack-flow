@@ -37,3 +37,8 @@
     --font-mono: "IBM Plex Mono", "Courier New", monospace;
   }
 }
+
+[data-slot="form-message"] {
+  @apply text-xs font-medium text-accent-3 dark:text-accent-3/90;
+  margin-top: -1rem;
+}
