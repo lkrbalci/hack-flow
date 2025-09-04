@@ -1,0 +1,65 @@
+export const mockProjects = [
+  {
+    id: "proj-1",
+    name: "Website Redesign",
+    userId: "1",
+    createdAt: "2024-01-15",
+    order: 0,
+  },
+  {
+    id: "proj-2",
+    name: "Mobile App Development",
+    userId: "1",
+    createdAt: "2024-01-20",
+    order: 1,
+  },
+  {
+    id: "proj-3",
+    name: "Marketing Campaign",
+    userId: "1",
+    createdAt: "2024-02-01",
+    order: 2,
+  },
+];
+export const mockTasks = [
+  {
+    id: "task-1",
+    title: "Create wireframes",
+    projectId: "proj-1",
+    status: "active",
+    order: 0,
+    createdAt: "2024-01-16",
+  },
+  {
+    id: "task-2",
+    title: "Design homepage",
+    projectId: "proj-1",
+    status: "done",
+    order: 1,
+    createdAt: "2024-01-17",
+  },
+  {
+    id: "task-3",
+    title: "Setup development environment",
+    projectId: "proj-2",
+    status: "active",
+    order: 0,
+    createdAt: "2024-01-21",
+  },
+  {
+    id: "task-4",
+    title: "Create user authentication",
+    projectId: "proj-2",
+    status: "active",
+    order: 1,
+    createdAt: "2024-01-22",
+  },
+  {
+    id: "task-5",
+    title: "Research target audience",
+    projectId: "proj-3",
+    status: "done",
+    order: 0,
+    createdAt: "2024-02-02",
+  },
+];

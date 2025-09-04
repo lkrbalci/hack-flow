@@ -1,7 +1,6 @@
 "use client";
 
 import { DynamicSheet } from "@/components/DynamicSheet/DynamicSheet";
-import { TimeTracker } from "@/components/TimeTracker/TimeTracker";
 import { useSheetManager } from "@/hooks/useSheetManager";
 import { TaskForm } from "@/components/forms/TaskForm";
 import { ProjectForm } from "@/components/forms/ProjectForm";
@@ -9,6 +8,11 @@ import { Button } from "@/components/ui/button";
 import { TimeTrackerForm } from "@/components/forms/TimeTrackerForm";
 import { TimeTrackerDisplay } from "@/components/TimeTrackerDisplay/TimeTrackerDisplay";
 import { ProgressTrackerDisplay } from "@/components/ProgressTrackerDisplay/ProgressTrackerDisplay";
+import { ProjectTaskList } from "@/components/ProjectTaskList/ProjectTaskList";
+import {
+  mockProjects,
+  mockTasks,
+} from "@/components/ProjectTaskList/projectTaskListMockApi";
 
 export default function Home() {
   const { sheet, openSheet, closeSheet } = useSheetManager();
@@ -27,6 +31,8 @@ export default function Home() {
         <TimeTrackerDisplay />
         <div className="pt-8"></div>
         <ProgressTrackerDisplay />
+        <div className="pt-8"></div>
+        <ProjectTaskList projects={mockProjects} tasks={mockTasks} />
       </div>
       <DynamicSheet
         open={sheet.open}
@@ -51,6 +57,7 @@ export default function Home() {
           <TimeTrackerForm onSubmit={closeSheet} onCancel={closeSheet} />
         )}
       </DynamicSheet>
+
       <Button onClick={() => openSheet("task")}>Open Sheet</Button>
       <Button onClick={() => openSheet("project")}>Open Sheet</Button>
       <Button onClick={() => openSheet("time-tracker")}>Open Sheet</Button>
