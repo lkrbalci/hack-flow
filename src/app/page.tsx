@@ -13,6 +13,7 @@ import {
   mockProjects,
   mockTasks,
 } from "@/components/ProjectTaskList/projectTaskListMockApi";
+import { AuthButtonGuard } from "@/components/AuthButtonGuard/AuthButtonGuard";
 
 export default function Home() {
   const { sheet, openSheet, closeSheet } = useSheetManager();
@@ -60,7 +61,9 @@ export default function Home() {
 
       <Button onClick={() => openSheet("task")}>Open Sheet</Button>
       <Button onClick={() => openSheet("project")}>Open Sheet</Button>
-      <Button onClick={() => openSheet("time-tracker")}>Open Sheet</Button>
+      <AuthButtonGuard>
+        <Button onClick={() => openSheet("time-tracker")}>Open Sheet</Button>
+      </AuthButtonGuard>
     </main>
   );
 }
