@@ -7,6 +7,8 @@ import { TaskForm } from "@/components/forms/TaskForm";
 import { ProjectForm } from "@/components/forms/ProjectForm";
 import { Button } from "@/components/ui/button";
 import { TimeTrackerForm } from "@/components/forms/TimeTrackerForm";
+import { TimeTrackerDisplay } from "@/components/TimeTrackerDisplay/TimeTrackerDisplay";
+import { ProgressTrackerDisplay } from "@/components/ProgressTrackerDisplay/ProgressTrackerDisplay";
 
 export default function Home() {
   const { sheet, openSheet, closeSheet } = useSheetManager();
@@ -22,7 +24,9 @@ export default function Home() {
             Set your time period and watch the progress unfold
           </p>
         </div>
-        <TimeTracker />
+        <TimeTrackerDisplay />
+        <div className="pt-8"></div>
+        <ProgressTrackerDisplay />
       </div>
       <DynamicSheet
         open={sheet.open}

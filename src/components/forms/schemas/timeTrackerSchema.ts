@@ -74,7 +74,7 @@ export const timeTrackerSchemaWithValidation = timeTrackerSchema.superRefine(
           path: ["endDate"],
         });
       }
-    } catch (error) {
+    } catch {
       ctx.addIssue({
         code: "custom",
         message: "Invalid date/time format",
