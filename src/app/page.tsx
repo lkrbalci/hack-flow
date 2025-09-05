@@ -14,9 +14,12 @@ import {
   mockTasks,
 } from "@/components/ProjectTaskList/projectTaskListMockApi";
 import { AuthButtonGuard } from "@/components/AuthButtonGuard/AuthButtonGuard";
+import { useLogout } from "@/hooks/useAuthMutations";
 
 export default function Home() {
   const { sheet, openSheet, closeSheet } = useSheetManager();
+
+  const { mutate: logout, isPending } = useLogout();
 
   return (
     <main className="min-h-screen bg-background p-4">
@@ -64,6 +67,9 @@ export default function Home() {
       <AuthButtonGuard>
         <Button onClick={() => openSheet("time-tracker")}>Open Sheet</Button>
       </AuthButtonGuard>
+      <Button onClick={() => logout()} disabled={isPending}>
+        Logout
+      </Button>
     </main>
   );
 }

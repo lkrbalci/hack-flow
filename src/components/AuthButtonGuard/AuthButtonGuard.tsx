@@ -16,34 +16,49 @@ import {
   useCallback,
   ButtonHTMLAttributes,
 } from "react";
+import { useLogin, useRegister } from "@/hooks/useAuthMutations";
 
-// Mock login/signup forms (replace with real ones)
 function LoginForm({ onSuccess }: { onSuccess: () => void }) {
+  const { mutate: login, isPending } = useLogin();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    login(
+      { email, password },
+      {
+        onSuccess,
+      }
+    );
+  };
+
   return (
-    <div className="p-4 bg-gray-50 rounded-md">
-      <h3 className="text-lg font-medium mb-4">Log In</h3>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          // Simulate login success
-          console.log("Logged in!");
-          onSuccess();
-        }}
-      >
+    <div className="p-6 bg-panel-bg border border-border rounded-lg">
+      <h3 className="text-lg font-medium mb-4 text-foreground">Log In</h3>
+      <form onSubmit={handleSubmit}>
         <input
           type="email"
           placeholder="Email"
-          className="w-full p-2 border rounded mb-3"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full p-3 mb-3 bg-background border border-border rounded text-foreground placeholder:text-foreground/50"
           required
         />
         <input
           type="password"
           placeholder="Password"
-          className="w-full p-2 border rounded mb-3"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full p-3 mb-4 bg-background border border-border rounded text-foreground placeholder:text-foreground/50"
           required
         />
-        <Button type="submit" className="w-full">
-          Log In
+        <Button
+          type="submit"
+          className="w-1/2 bg-accent-1"
+          disabled={isPending}
+        >
+          {isPending ? "Logging in..." : "Log In"}
         </Button>
       </form>
     </div>
@@ -51,31 +66,55 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
 }
 
 function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
+  const { mutate: register, isPending } = useRegister();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    register(
+      { email, password, name },
+      {
+        onSuccess,
+      }
+    );
+  };
+
   return (
-    <div className="p-4 bg-gray-50 rounded-md">
-      <h3 className="text-lg font-medium mb-4">Sign Up</h3>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          // Simulate sign-up success
-          console.log("Signed up!");
-          onSuccess();
-        }}
-      >
+    <div className="p-6 bg-panel-bg border border-border rounded-lg">
+      <h3 className="text-lg font-medium mb-4 text-foreground">Sign Up</h3>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          placeholder="Full Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full p-3 mb-3 bg-background border border-border rounded text-foreground placeholder:text-foreground/50"
+          required
+        />
         <input
           type="email"
           placeholder="Email"
-          className="w-full p-2 border rounded mb-3"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full p-3 mb-3 bg-background border border-border rounded text-foreground placeholder:text-foreground/50"
           required
         />
         <input
           type="password"
           placeholder="Password"
-          className="w-full p-2 border rounded mb-3"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full p-3 mb-4 bg-background border border-border rounded text-foreground placeholder:text-foreground/50"
           required
         />
-        <Button type="submit" className="w-full">
-          Sign Up
+        <Button
+          type="submit"
+          className="w-1/2 bg-accent-1"
+          disabled={isPending}
+        >
+          {isPending ? "Signing up..." : "Sign Up"}
         </Button>
       </form>
     </div>
@@ -84,7 +123,7 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 
 interface AuthButtonGuardProps {
   children: ReactNode;
-  onAuthSuccess?: () => void; // Optional: custom action after login
+  onAuthSuccess?: () => void;
 }
 
 export function AuthButtonGuard({
@@ -94,26 +133,21 @@ export function AuthButtonGuard({
   const { isAuthenticated, isLoading } = useUser();
   const [open, setOpen] = useState(false);
 
-  // Handle successful authentication
   const handleAuthSuccess = useCallback(() => {
     setOpen(false);
-    // Execute the original action after auth
     if (onAuthSuccess) {
       onAuthSuccess();
     }
   }, [onAuthSuccess]);
 
-  // If loading, just render children (or disable if preferred)
   if (isLoading) {
     return <>{children}</>;
   }
 
-  // If already authenticated, allow normal behavior
   if (isAuthenticated) {
     return <>{children}</>;
   }
 
-  // Wrap the button to intercept click
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -122,7 +156,6 @@ export function AuthButtonGuard({
             ButtonHTMLAttributes<HTMLButtonElement>
           >,
           {
-            // Prevent default action, just open dialog
             onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
               e.preventDefault();
               e.stopPropagation();
@@ -131,17 +164,29 @@ export function AuthButtonGuard({
           }
         )}
       </DialogTrigger>
-      <DialogContent>
-        <DialogTitle>Log In or Sign Up</DialogTitle>
+      <DialogContent className="bg-panel-bg border-border text-foreground max-w-md mx-auto p-0 rounded-xl overflow-hidden shadow-lg">
+        <DialogTitle className="p-4 text-center text-lg font-semibold border-b border-border bg-background">
+          🔐 Authentication Required
+        </DialogTitle>
         <Tabs defaultValue="login" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Log In</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          <TabsList className="grid w-1/2 grid-cols-2 bg-background border-b border-border mx-4">
+            <TabsTrigger
+              value="login"
+              className="data-[state=active]:bg-accent-1 data-[state=active]:text-foreground"
+            >
+              Log In
+            </TabsTrigger>
+            <TabsTrigger
+              value="signup"
+              className="data-[state=active]:bg-accent-1 data-[state=active]:text-foreground"
+            >
+              Sign Up
+            </TabsTrigger>
           </TabsList>
-          <TabsContent value="login">
+          <TabsContent value="login" className="p-4">
             <LoginForm onSuccess={handleAuthSuccess} />
           </TabsContent>
-          <TabsContent value="signup">
+          <TabsContent value="signup" className="p-4">
             <SignUpForm onSuccess={handleAuthSuccess} />
           </TabsContent>
         </Tabs>
