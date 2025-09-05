@@ -22,6 +22,7 @@ import {
 } from "@dnd-kit/sortable";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Button } from "../ui/button";
 
 interface Project {
   id: string;
@@ -186,6 +187,11 @@ function SortableProject({
               />
             ))}
           </SortableContext>
+          <div className="flex justify-end mt-6 mb-1">
+            <Button className="w-1/5 bg-accent-1 text-foreground">
+              Add Task
+            </Button>
+          </div>
         </div>
       )}
 
@@ -290,51 +296,57 @@ export function ProjectTaskList({ projects, tasks }: ProjectTaskManagerProps) {
   }, []);
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={({ active }) => {
-        setActiveId(active.id as string);
-      }}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="space-y-3 bg-panel-bg border border-border rounded-md">
-        <SortableContext
-          items={projectsData.map((project) => project.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          {projectsData.map((project) => (
-            <SortableProject
-              key={project.id}
-              project={project}
-              tasks={tasksData}
-              isExpanded={expandedProjects.has(project.id)}
-              onToggleExpanded={() => toggleProjectExpanded(project.id)}
-              onTaskStatusChange={handleTaskStatusChange}
-            />
-          ))}
-        </SortableContext>
+    <div className="space-y-3 bg-panel-bg border border-border rounded-md">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={({ active }) => {
+          setActiveId(active.id as string);
+        }}
+        onDragEnd={handleDragEnd}
+      >
+        <div>
+          <SortableContext
+            items={projectsData.map((project) => project.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {projectsData.map((project) => (
+              <SortableProject
+                key={project.id}
+                project={project}
+                tasks={tasksData}
+                isExpanded={expandedProjects.has(project.id)}
+                onToggleExpanded={() => toggleProjectExpanded(project.id)}
+                onTaskStatusChange={handleTaskStatusChange}
+              />
+            ))}
+          </SortableContext>
 
-        {projectsData.length === 0 && (
-          <p className="text-center text-foreground/60 text-sm py-8">
-            No projects yet. Create one to get started.
-          </p>
-        )}
+          {projectsData.length === 0 && (
+            <p className="text-center text-foreground/60 text-sm py-8">
+              No projects yet. Create one to get started.
+            </p>
+          )}
+        </div>
+        <DragOverlay>
+          {activeId ? (
+            projectsData.some((p) => p.id === activeId) ? (
+              <div className="border rounded-lg bg-card shadow-lg p-4 opacity-90">
+                {projectsData.find((p) => p.id === activeId)?.name}
+              </div>
+            ) : (
+              <div className="p-3 ml-6 border rounded-md bg-card shadow-lg">
+                {tasksData.find((t) => t.id === activeId)?.title}
+              </div>
+            )
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+      <div className="flex justify-end px-6 mb-6">
+        <Button className="w-1/5 bg-accent-1 text-foreground">
+          Add Project
+        </Button>
       </div>
-      <DragOverlay>
-        {activeId ? (
-          // Show a clean version of the dragged item
-          projectsData.some((p) => p.id === activeId) ? (
-            <div className="border rounded-lg bg-card shadow-lg p-4 opacity-90">
-              {projectsData.find((p) => p.id === activeId)?.name}
-            </div>
-          ) : (
-            <div className="p-3 ml-6 border rounded-md bg-card shadow-lg">
-              {tasksData.find((t) => t.id === activeId)?.title}
-            </div>
-          )
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+    </div>
   );
 }
