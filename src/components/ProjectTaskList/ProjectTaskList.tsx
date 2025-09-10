@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { ChevronDown, ChevronRight, GripVertical } from "lucide-react";
+import { ChevronDown, ChevronRight, Clock, GripVertical } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import {
@@ -24,22 +24,10 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "../ui/button";
 
-interface Project {
-  id: string;
-  name: string;
-  userId: string;
-  createdAt: string;
-  order: number;
-}
-
-interface Task {
-  id: string;
-  title: string;
-  projectId: string;
-  status: string;
-  order: number;
-  createdAt: string;
-}
+import { Project } from "@/types/project";
+import { Task } from "@/types/task";
+import { useUpdateTaskOrder } from "@/hooks/task/taskMutations";
+import { useUpdateProjectOrder } from "@/hooks/project/projectMutations";
 
 interface ProjectTaskManagerProps {
   projects: Project[];
@@ -67,11 +55,20 @@ function SortableTask({ task, onStatusChange }: SortableTaskProps) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id });
+  } = useSortable({ id: task.$id });
+
+  const [isEditingEffort, setIsEditingEffort] = useState(false);
+  const [tempEffortValue, setTempEffortValue] = useState("0");
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+  };
+
+  const onEffortChange = (taskId: string, newEffort: number) => {
+    // Update the task with new effort estimate
+    // This would typically call your API or update your state
+    console.log(`Update task ${taskId} with effort ${newEffort}`);
   };
 
   return (
@@ -95,7 +92,7 @@ function SortableTask({ task, onStatusChange }: SortableTaskProps) {
         className="cursor-pointer text-foreground/60 hover:text-foreground/90"
         checked={task.status === "done"}
         onCheckedChange={(checked) =>
-          onStatusChange(task.id, checked ? "done" : "active")
+          onStatusChange(task.$id, checked ? "done" : "active")
         }
       />
       <span
@@ -106,6 +103,42 @@ function SortableTask({ task, onStatusChange }: SortableTaskProps) {
       >
         {task.title}
       </span>
+      <div className="flex items-center gap-1">
+        {isEditingEffort ? (
+          <input
+            type="number"
+            min="0"
+            value={tempEffortValue}
+            onChange={(e) => setTempEffortValue(e.target.value)}
+            onBlur={() => {
+              onEffortChange(task.$id, parseInt(tempEffortValue) || 0);
+              setIsEditingEffort(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                onEffortChange(task.$id, parseInt(tempEffortValue) || 0);
+                setIsEditingEffort(false);
+              } else if (e.key === "Escape") {
+                setTempEffortValue(task.effortEstimate?.toString() || "0");
+                setIsEditingEffort(false);
+              }
+            }}
+            autoFocus
+            className="w-12 px-1 py-0.5 text-xs border border-border rounded text-foreground bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        ) : (
+          <div
+            className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-medium cursor-pointer hover:bg-primary/20 transition-colors"
+            onClick={() => {
+              setIsEditingEffort(true);
+              setTempEffortValue(task.effortEstimate?.toString() || "0");
+            }}
+          >
+            <Clock className="h-3 w-3" />
+            <span>{task.effortEstimate || 0}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -124,7 +157,7 @@ function SortableProject({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: project.id });
+  } = useSortable({ id: project.$id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -132,7 +165,7 @@ function SortableProject({
   };
 
   const projectTasks = tasks
-    .filter((task) => task.projectId === project.id)
+    .filter((task) => task.projectId === project.$id)
     .sort((a, b) => a.order - b.order);
 
   return (
@@ -156,7 +189,7 @@ function SortableProject({
         <button
           onClick={onToggleExpanded}
           aria-expanded={isExpanded}
-          aria-controls={`project-${project.id}-tasks`}
+          aria-controls={`project-${project.$id}-tasks`}
           className="flex items-center gap-2 flex-1 text-left group"
         >
           {isExpanded ? (
@@ -174,14 +207,18 @@ function SortableProject({
       </div>
 
       {isExpanded && projectTasks.length > 0 && (
-        <div className="px-4 pb-4 space-y-2" id={`project-${project.id}-tasks`}>
+        <div
+          className="px-4 pb-4 space-y-2"
+          id={`project-${project.$id}-tasks`}
+        >
+          {" "}
           <SortableContext
-            items={projectTasks.map((task) => task.id)}
+            items={projectTasks.map((task) => task.$id)}
             strategy={verticalListSortingStrategy}
           >
             {projectTasks.map((task) => (
               <SortableTask
-                key={task.id}
+                key={task.$id}
                 task={task}
                 onStatusChange={onTaskStatusChange}
               />
@@ -205,6 +242,9 @@ function SortableProject({
 }
 
 export function ProjectTaskList({ projects, tasks }: ProjectTaskManagerProps) {
+  const updateProjectOrderMutation = useUpdateProjectOrder();
+  const updateTaskOrderMutation = useUpdateTaskOrder();
+
   const [projectsData, setProjectsData] = useState(
     [...projects].sort((a, b) => a.order - b.order)
   );
@@ -231,22 +271,31 @@ export function ProjectTaskList({ projects, tasks }: ProjectTaskManagerProps) {
 
     if (activeId === overId) return;
 
-    const isProject = projectsData.some((p) => p.id === activeId);
+    const isProject = projectsData.some((p) => p.$id === activeId);
 
     if (isProject) {
       setProjectsData((projects) => {
-        const oldIndex = projects.findIndex((p) => p.id === activeId);
-        const newIndex = projects.findIndex((p) => p.id === overId);
+        const oldIndex = projects.findIndex((p) => p.$id === activeId);
+        const newIndex = projects.findIndex((p) => p.$id === overId);
 
         const newProjects = arrayMove(projects, oldIndex, newIndex);
-        return newProjects.map((project, index) => ({
+        const updatedProjects = newProjects.map((project, index) => ({
           ...project,
           order: index,
         }));
+
+        updateProjectOrderMutation.mutate({
+          projects: updatedProjects.map((p) => ({
+            id: p.$id,
+            order: p.order,
+          })),
+        });
+
+        return updatedProjects;
       });
     } else {
-      const activeTask = tasksData.find((t) => t.id === activeId);
-      const overTask = tasksData.find((t) => t.id === overId);
+      const activeTask = tasksData.find((t) => t.$id === activeId);
+      const overTask = tasksData.find((t) => t.$id === overId);
 
       if (!activeTask || !overTask) return;
 
@@ -259,8 +308,8 @@ export function ProjectTaskList({ projects, tasks }: ProjectTaskManagerProps) {
             (t) => t.projectId !== activeTask.projectId
           );
 
-          const oldIndex = projectTasks.findIndex((t) => t.id === activeId);
-          const newIndex = projectTasks.findIndex((t) => t.id === overId);
+          const oldIndex = projectTasks.findIndex((t) => t.$id === activeId);
+          const newIndex = projectTasks.findIndex((t) => t.$id === overId);
 
           const reorderedTasks = arrayMove(projectTasks, oldIndex, newIndex);
           const updatedProjectTasks = reorderedTasks.map((task, index) => ({
@@ -268,7 +317,16 @@ export function ProjectTaskList({ projects, tasks }: ProjectTaskManagerProps) {
             order: index,
           }));
 
-          return [...otherTasks, ...updatedProjectTasks];
+          const newTasks = [...otherTasks, ...updatedProjectTasks];
+
+          updateTaskOrderMutation.mutate({
+            tasks: updatedProjectTasks.map((t) => ({
+              id: t.$id,
+              order: t.order,
+            })),
+          });
+
+          return newTasks;
         });
       }
     }
@@ -277,7 +335,7 @@ export function ProjectTaskList({ projects, tasks }: ProjectTaskManagerProps) {
   const handleTaskStatusChange = useCallback(
     (taskId: string, status: "active" | "done") => {
       setTasksData((prev) =>
-        prev.map((task) => (task.id === taskId ? { ...task, status } : task))
+        prev.map((task) => (task.$id === taskId ? { ...task, status } : task))
       );
     },
     []
@@ -307,16 +365,16 @@ export function ProjectTaskList({ projects, tasks }: ProjectTaskManagerProps) {
       >
         <div>
           <SortableContext
-            items={projectsData.map((project) => project.id)}
+            items={projectsData.map((project) => project.$id)}
             strategy={verticalListSortingStrategy}
           >
             {projectsData.map((project) => (
               <SortableProject
-                key={project.id}
+                key={project.$id}
                 project={project}
                 tasks={tasksData}
-                isExpanded={expandedProjects.has(project.id)}
-                onToggleExpanded={() => toggleProjectExpanded(project.id)}
+                isExpanded={expandedProjects.has(project.$id)}
+                onToggleExpanded={() => toggleProjectExpanded(project.$id)}
                 onTaskStatusChange={handleTaskStatusChange}
               />
             ))}
@@ -330,13 +388,13 @@ export function ProjectTaskList({ projects, tasks }: ProjectTaskManagerProps) {
         </div>
         <DragOverlay>
           {activeId ? (
-            projectsData.some((p) => p.id === activeId) ? (
+            projectsData.some((p) => p.$id === activeId) ? (
               <div className="border rounded-lg bg-card shadow-lg p-4 opacity-90">
-                {projectsData.find((p) => p.id === activeId)?.name}
+                {projectsData.find((p) => p.$id === activeId)?.name}{" "}
               </div>
             ) : (
               <div className="p-3 ml-6 border rounded-md bg-card shadow-lg">
-                {tasksData.find((t) => t.id === activeId)?.title}
+                {tasksData.find((t) => t.$id === activeId)?.title}{" "}
               </div>
             )
           ) : null}
