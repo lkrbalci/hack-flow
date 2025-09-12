@@ -16,19 +16,31 @@ import { taskSchema, TaskFormValues } from "./schemas/taskSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useEffect } from "react";
+import { useCreateTask } from "@/hooks/task/taskMutations";
+import { Task } from "@/types/task";
 
 type TaskFormProps = {
-  onSubmit: (data: TaskFormValues) => void | Promise<void>;
-  onCancel: () => void;
+  closeSheet: () => void;
+  projectId?: string;
+  tasks: Task[];
+  userId: string;
 };
 
-export function TaskForm({ onSubmit: onSubmitProp, onCancel }: TaskFormProps) {
+export function TaskForm({
+  closeSheet,
+  projectId,
+  tasks,
+  userId,
+}: TaskFormProps) {
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
-      name: "",
+      title: "",
+      effortEstimate: 1,
     },
   });
+
+  const { mutate: createTask, isPending } = useCreateTask();
 
   const { handleSubmit, reset } = form;
 
@@ -37,8 +49,21 @@ export function TaskForm({ onSubmit: onSubmitProp, onCancel }: TaskFormProps) {
   }, [reset]);
 
   const onSubmit = async (data: TaskFormValues) => {
+    const filteredTasks = tasks.filter((task) => task.projectId === projectId);
+    const maxOrder =
+      filteredTasks.length > 0
+        ? Math.max(...filteredTasks.map((task) => task.order || 1))
+        : 1;
+
     try {
-      await onSubmitProp(data);
+      await createTask({
+        ...data,
+        projectId: projectId || "",
+        status: "active",
+        order: maxOrder + 1,
+        userId,
+      });
+      closeSheet();
       toast("Project Saved");
     } catch {
       toast("Failed to save project");
@@ -50,7 +75,7 @@ export function TaskForm({ onSubmit: onSubmitProp, onCancel }: TaskFormProps) {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
-          name="name"
+          name="title"
           render={({ field }) => (
             <FormItem className="space-y-4">
               <FormLabel className="flex items-center gap-2 text-sm leading-none select-none text-foreground font-medium group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50">
@@ -96,7 +121,7 @@ export function TaskForm({ onSubmit: onSubmitProp, onCancel }: TaskFormProps) {
           <Button
             type="button"
             variant="outline"
-            onClick={onCancel}
+            onClick={closeSheet}
             disabled={false}
             className="border bg-background shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 has-[>svg]:px-3 border-border text-foreground hover:bg-panel-bg inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40"
           >
@@ -107,7 +132,7 @@ export function TaskForm({ onSubmit: onSubmitProp, onCancel }: TaskFormProps) {
             disabled={form.formState.isSubmitting}
             className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive shadow-xs h-9 px-4 py-2 has-[>svg]:px-3 bg-accent-1 hover:bg-accent-1/90 text-foreground font-medium"
           >
-            {form.formState.isSubmitting ? "Saving" : "Save"}
+            {form.formState.isSubmitting || isPending ? "Saving" : "Save"}
           </Button>
         </div>
       </form>

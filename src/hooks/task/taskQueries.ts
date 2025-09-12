@@ -22,7 +22,11 @@ export const fetchTasks = async (): Promise<Task[]> => {
     $id: row.$id,
     $createdAt: row.$createdAt,
     $updatedAt: row.$updatedAt,
-    ...row.data,
+    title: row.title,
+    projectId: row.projectId,
+    effortEstimate: row.effortEstimate,
+    status: row.status,
+    order: row.order,
   })) as unknown as Task[];
 };
 
@@ -30,7 +34,7 @@ const getRetryDelay = (attemptIndex: number) => {
   return Math.min(1000 * 2 ** attemptIndex, 5000);
 };
 
-export const useTasksQuery = () => {
+export const useTasksQuery = (options = {}) => {
   const query = useQuery({
     queryKey: ["tasks"],
     queryFn: fetchTasks,
@@ -42,6 +46,7 @@ export const useTasksQuery = () => {
     gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
 
     refetchOnWindowFocus: false,
+    ...options,
   });
 
   useEffect(() => {

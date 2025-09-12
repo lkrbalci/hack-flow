@@ -1,4 +1,6 @@
 // src/forms/TimeTrackerForm.tsx
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,14 +21,20 @@ import {
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useEffect } from "react";
 import {
   TimeTrackerFormValues,
   timeTrackerSchemaWithValidation,
 } from "./schemas/timeTrackerSchema";
+import {
+  useCreateTimeTracker,
+  useUpdateTimeTracker,
+} from "@/hooks/timeTracker/timeTrackerMutations";
+import { useUserTimeTrackerQuery } from "@/hooks/timeTracker/timeTrackerQueries";
 
 type TimeTrackerFormProps = {
-  onSubmit: (data: TimeTrackerFormValues) => void | Promise<void>;
-  onCancel: () => void;
+  closeSheet: () => void;
+  userId: string;
 };
 
 const timezones = [
@@ -42,34 +50,106 @@ const timezones = [
   "Australia/Sydney",
 ];
 
-export function TimeTrackerForm({
-  onSubmit: onSubmitProp,
-  onCancel,
-}: TimeTrackerFormProps) {
-  const defaultValues: TimeTrackerFormValues = {
-    startDate: "",
-    startTime: "",
-    endDate: "",
-    endTime: "",
-    hackathonTimezone: "",
-    userTimezone: "",
-  };
+export function TimeTrackerForm({ closeSheet, userId }: TimeTrackerFormProps) {
+  const {
+    data: userTimeTracker,
+    isLoading,
+    isError,
+  } = useUserTimeTrackerQuery(userId);
+
+  const isEditing = !!userTimeTracker;
 
   const form = useForm<TimeTrackerFormValues>({
     resolver: zodResolver(timeTrackerSchemaWithValidation),
-    defaultValues,
+    defaultValues: {
+      startDate: userTimeTracker?.startDate || "",
+      startTime: userTimeTracker?.startTime || "",
+      endDate: userTimeTracker?.endDate || "",
+      endTime: userTimeTracker?.endTime || "",
+      hackathonTimezone: userTimeTracker?.hackathonTimezone || "",
+      userTimezone: userTimeTracker?.userTimezone || "",
+    },
   });
 
-  const { handleSubmit } = form;
+  const { mutate: createTracker, isPending: isCreating } =
+    useCreateTimeTracker();
+  const { mutate: updateTracker, isPending: isUpdating } =
+    useUpdateTimeTracker();
+
+  const { handleSubmit, reset } = form;
+
+  useEffect(() => {
+    if (userTimeTracker) {
+      reset({
+        startDate: userTimeTracker.startDate,
+        startTime: userTimeTracker.startTime,
+        endDate: userTimeTracker.endDate,
+        endTime: userTimeTracker.endTime,
+        hackathonTimezone: userTimeTracker.hackathonTimezone,
+        userTimezone: userTimeTracker.userTimezone,
+      });
+    }
+  }, [userTimeTracker, reset]);
 
   const onSubmit = async (data: TimeTrackerFormValues) => {
     try {
-      await onSubmitProp(data);
-      toast("Time Tracking Started.");
+      if (isEditing) {
+        await new Promise((resolve) => {
+          updateTracker(
+            {
+              timeTrackerId: userTimeTracker.$id,
+              data: data,
+            },
+            {
+              onSuccess: () => {
+                closeSheet();
+                toast("Time tracker updated");
+                resolve(true);
+              },
+              onError: () => {
+                toast("Failed to update time tracker");
+                resolve(false);
+              },
+            }
+          );
+        });
+      } else {
+        await new Promise((resolve) => {
+          createTracker(
+            { ...data, userId },
+            {
+              onSuccess: () => {
+                closeSheet();
+                toast("Time tracker created");
+                resolve(true);
+              },
+              onError: () => {
+                toast("Failed to create time tracker");
+                resolve(false);
+              },
+            }
+          );
+        });
+      }
     } catch {
-      toast("Failed To Start Time Tracking.");
+      toast(`Failed to ${isEditing ? "update" : "create"} time tracker`);
     }
   };
+
+  const onCancel = () => {
+    reset();
+    closeSheet();
+  };
+
+  const isPending = isCreating || isUpdating || isLoading;
+
+  if (isLoading) {
+    return <div>Loading time tracker data...</div>;
+  }
+
+  if (isError) {
+    return <div>Error loading time tracker data</div>;
+  }
 
   return (
     <Form {...form}>
@@ -89,7 +169,7 @@ export function TimeTrackerForm({
                       type="date"
                       {...field}
                       data-slot="input"
-                      className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-background border-border text-foreground"
+                      className="mt-2 file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-background border-border text-foreground"
                     />
                   </FormControl>
                   <FormMessage />
@@ -110,7 +190,7 @@ export function TimeTrackerForm({
                       type="time"
                       {...field}
                       data-slot="input"
-                      className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-background border-border text-foreground"
+                      className="mt-2 file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-background border-border text-foreground"
                     />
                   </FormControl>
                   <FormMessage />
@@ -133,7 +213,7 @@ export function TimeTrackerForm({
                       type="date"
                       {...field}
                       data-slot="input"
-                      className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-background border-border text-foreground"
+                      className="mt-2 file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-background border-border text-foreground"
                     />
                   </FormControl>
                   <FormMessage />
@@ -154,7 +234,7 @@ export function TimeTrackerForm({
                       type="time"
                       {...field}
                       data-slot="input"
-                      className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-background border-border text-foreground"
+                      className="mt-2 file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-background border-border text-foreground"
                     />
                   </FormControl>
                   <FormMessage />
@@ -174,10 +254,10 @@ export function TimeTrackerForm({
               </FormLabel>
               <FormControl>
                 <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-background border-border text-foreground">
+                  <SelectTrigger className="mt-2 file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-background border-border text-foreground">
                     <SelectValue placeholder="Select timezone" />
                   </SelectTrigger>
-                  <SelectContent className="bg-background border-border max-h-60">
+                  <SelectContent className="bg-background border-border">
                     {timezones.map((tz) => (
                       <SelectItem
                         key={tz}
@@ -205,10 +285,10 @@ export function TimeTrackerForm({
               </FormLabel>
               <FormControl>
                 <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-background border-border text-foreground">
+                  <SelectTrigger className="mt-2 file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-background border-border text-foreground">
                     <SelectValue placeholder="Select timezone" />
                   </SelectTrigger>
-                  <SelectContent className="bg-background border-border max-h-60">
+                  <SelectContent className="bg-background border-border">
                     {timezones.map((tz) => (
                       <SelectItem
                         key={tz}
@@ -237,17 +317,23 @@ export function TimeTrackerForm({
             type="button"
             variant="outline"
             onClick={onCancel}
-            disabled={false}
+            disabled={isPending}
             className="border bg-background shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 has-[>svg]:px-3 border-border text-foreground hover:bg-panel-bg inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40"
           >
             Cancel
           </Button>
           <Button
             type="submit"
-            disabled={form.formState.isSubmitting}
+            disabled={form.formState.isSubmitting || isPending}
             className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive shadow-xs h-9 px-4 py-2 has-[>svg]:px-3 bg-accent-1 hover:bg-accent-1/90 text-foreground font-medium"
           >
-            {form.formState.isSubmitting ? "Starting..." : "Start"}
+            {isPending
+              ? isEditing
+                ? "Updating..."
+                : "Creating..."
+              : isEditing
+              ? "Update"
+              : "Create"}
           </Button>
         </div>
       </form>

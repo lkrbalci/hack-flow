@@ -16,22 +16,28 @@ import { projectSchema, ProjectFormValues } from "./schemas/projectSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useEffect } from "react";
+import { useCreateProject } from "@/hooks/project/projectMutations";
+import { Project } from "@/types/project";
 
 type ProjectFormProps = {
-  onSubmit: (data: ProjectFormValues) => void | Promise<void>;
-  onCancel: () => void;
+  closeSheet: () => void;
+  projects: Project[];
+  userId: string;
 };
 
 export function ProjectForm({
-  onSubmit: onSubmitProp,
-  onCancel,
+  closeSheet,
+  projects,
+  userId,
 }: ProjectFormProps) {
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
-      name: "",
+      title: "",
     },
   });
+
+  const { mutate: createProject, isPending } = useCreateProject();
 
   const { handleSubmit, reset } = form;
 
@@ -40,8 +46,11 @@ export function ProjectForm({
   }, [reset]);
 
   const onSubmit = async (data: ProjectFormValues) => {
+    const maxOrder =
+      projects.length > 0 ? Math.max(...projects.map((p) => p.order || 1)) : 1;
     try {
-      await onSubmitProp(data);
+      closeSheet();
+      await createProject({ ...data, order: maxOrder + 1, userId });
       toast("Project Saved");
     } catch {
       toast("Failed to save project");
@@ -54,7 +63,7 @@ export function ProjectForm({
         <div className="space-y-4">
           <FormField
             control={form.control}
-            name="name"
+            name="title"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="flex items-center gap-2 text-sm leading-none select-none text-foreground font-medium group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50">
@@ -65,7 +74,7 @@ export function ProjectForm({
                     placeholder="Project Name"
                     {...field}
                     data-slot="input"
-                    className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-background border-border text-foreground"
+                    className="mt-2 file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-background border-border text-foreground"
                   />
                 </FormControl>
                 <FormMessage />
@@ -78,7 +87,7 @@ export function ProjectForm({
           <Button
             type="button"
             variant="outline"
-            onClick={onCancel}
+            onClick={closeSheet}
             disabled={false}
             className="border bg-background shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 has-[>svg]:px-3 border-border text-foreground hover:bg-panel-bg inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40"
           >
@@ -89,7 +98,7 @@ export function ProjectForm({
             disabled={form.formState.isSubmitting}
             className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive shadow-xs h-9 px-4 py-2 has-[>svg]:px-3 bg-accent-1 hover:bg-accent-1/90 text-foreground font-medium"
           >
-            {form.formState.isSubmitting ? "Saving" : "Save"}
+            {form.formState.isSubmitting || isPending ? "Saving" : "Save"}
           </Button>
         </div>
       </form>

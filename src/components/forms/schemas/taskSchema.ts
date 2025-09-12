@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const taskSchema = z.object({
-  name: z.string().min(1, "Task Name is Required").max(100),
+  title: z.string().min(1, "Task Name is Required").max(100),
   effortEstimate: z.number().min(1).max(10),
 });
 

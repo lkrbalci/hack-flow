@@ -16,26 +16,29 @@ export const fetchProjects = async (): Promise<Project[]> => {
   const session = await account.get();
   if (!session) {
     console.log("No valid session");
+    return [];
   }
   const response = await tablesDB.listRows({
     databaseId: DATABASE_ID,
     tableId: PROJECTS_TABLE_ID,
-    queries: [Query.limit(10)],
+    queries: [Query.equal("userId", session.$id), Query.limit(10)],
   });
 
   return response.rows.map((row) => ({
     $id: row.$id,
     $createdAt: row.$createdAt,
     $updatedAt: row.$updatedAt,
-    ...row.data,
-  })) as unknown as Project[];
+    title: row.title,
+    userId: row.userId,
+    order: row.order,
+  })) as Project[];
 };
 
 const getRetryDelay = (attemptIndex: number) => {
   return Math.min(1000 * 2 ** attemptIndex, 5000); // 1s, 2s, 4s, cap at 5s
 };
 
-export const useProjectsQuery = () => {
+export const useProjectsQuery = (options = {}) => {
   const query = useQuery({
     queryKey: ["projects"],
     queryFn: fetchProjects,
@@ -47,6 +50,7 @@ export const useProjectsQuery = () => {
     gcTime: 10 * 60 * 1000, // 10 minutes
 
     refetchOnWindowFocus: false,
+    ...options,
   });
 
   useEffect(() => {

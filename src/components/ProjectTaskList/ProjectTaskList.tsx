@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ChevronDown, ChevronRight, Clock, GripVertical } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -26,12 +26,18 @@ import { Button } from "../ui/button";
 
 import { Project } from "@/types/project";
 import { Task } from "@/types/task";
-import { useUpdateTaskOrder } from "@/hooks/task/taskMutations";
+import {
+  useUpdateTaskOrder,
+  useUpdateTaskStatus,
+} from "@/hooks/task/taskMutations";
 import { useUpdateProjectOrder } from "@/hooks/project/projectMutations";
+import { SheetData, SheetType } from "@/hooks/useSheetManager";
+import { AuthButtonGuard } from "../AuthButtonGuard/AuthButtonGuard";
 
 interface ProjectTaskManagerProps {
   projects: Project[];
   tasks: Task[];
+  openSheet: (type: SheetType, data?: SheetData) => void;
 }
 
 interface SortableProjectProps {
@@ -40,6 +46,7 @@ interface SortableProjectProps {
   isExpanded: boolean;
   onToggleExpanded: () => void;
   onTaskStatusChange: (taskId: string, status: "active" | "done") => void;
+  openSheet: (type: SheetType, data?: SheetData) => void;
 }
 
 interface SortableTaskProps {
@@ -66,8 +73,6 @@ function SortableTask({ task, onStatusChange }: SortableTaskProps) {
   };
 
   const onEffortChange = (taskId: string, newEffort: number) => {
-    // Update the task with new effort estimate
-    // This would typically call your API or update your state
     console.log(`Update task ${taskId} with effort ${newEffort}`);
   };
 
@@ -149,6 +154,7 @@ function SortableProject({
   isExpanded,
   onToggleExpanded,
   onTaskStatusChange,
+  openSheet,
 }: SortableProjectProps) {
   const {
     attributes,
@@ -167,6 +173,12 @@ function SortableProject({
   const projectTasks = tasks
     .filter((task) => task.projectId === project.$id)
     .sort((a, b) => a.order - b.order);
+
+  const handleOpenTaskSheet = () => {
+    openSheet("task", {
+      projectId: project.$id,
+    });
+  };
 
   return (
     <div
@@ -198,7 +210,7 @@ function SortableProject({
             <ChevronRight className="h-4 w-4 text-foreground/70" />
           )}
           <h3 className="font-medium text-foreground group-hover:text-accent-2 transition-colors">
-            {project.name}
+            {project.title}
           </h3>
           <span className="text-sm text-foreground/60 ml-auto">
             {projectTasks.length} task{projectTasks.length !== 1 ? "s" : ""}
@@ -224,11 +236,6 @@ function SortableProject({
               />
             ))}
           </SortableContext>
-          <div className="flex justify-end mt-6 mb-1">
-            <Button className="w-1/5 bg-accent-1 text-foreground">
-              Add Task
-            </Button>
-          </div>
         </div>
       )}
 
@@ -237,18 +244,39 @@ function SortableProject({
           <p className="text-sm text-foreground/50 italic">No tasks yet</p>
         </div>
       )}
+
+      {isExpanded && (
+        <div className="flex justify-end m-2">
+          <AuthButtonGuard>
+            <Button
+              className="w-1/5 bg-accent-1 text-foreground"
+              onClick={() => {
+                handleOpenTaskSheet();
+              }}
+            >
+              Add Task
+            </Button>
+          </AuthButtonGuard>
+        </div>
+      )}
     </div>
   );
 }
 
-export function ProjectTaskList({ projects, tasks }: ProjectTaskManagerProps) {
+export function ProjectTaskList({
+  projects,
+  tasks,
+  openSheet,
+}: ProjectTaskManagerProps) {
   const updateProjectOrderMutation = useUpdateProjectOrder();
   const updateTaskOrderMutation = useUpdateTaskOrder();
+  const { mutate: updateTaskStatus } = useUpdateTaskStatus(); // Updated pattern
 
   const [projectsData, setProjectsData] = useState(
     [...projects].sort((a, b) => a.order - b.order)
   );
   const [tasksData, setTasksData] = useState(tasks);
+
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(
     new Set()
   );
@@ -260,6 +288,14 @@ export function ProjectTaskList({ projects, tasks }: ProjectTaskManagerProps) {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  useEffect(() => {
+    setProjectsData([...projects].sort((a, b) => a.order - b.order));
+  }, [projects]);
+
+  useEffect(() => {
+    setTasksData(tasks);
+  }, [tasks]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -337,8 +373,10 @@ export function ProjectTaskList({ projects, tasks }: ProjectTaskManagerProps) {
       setTasksData((prev) =>
         prev.map((task) => (task.$id === taskId ? { ...task, status } : task))
       );
+
+      updateTaskStatus({ taskId, status });
     },
-    []
+    [updateTaskStatus]
   );
 
   const toggleProjectExpanded = useCallback((projectId: string) => {
@@ -354,7 +392,7 @@ export function ProjectTaskList({ projects, tasks }: ProjectTaskManagerProps) {
   }, []);
 
   return (
-    <div className="space-y-3 bg-panel-bg border border-border rounded-md">
+    <div className="space-y-3 bg-panel-bg border border-border rounded-xl">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -376,6 +414,7 @@ export function ProjectTaskList({ projects, tasks }: ProjectTaskManagerProps) {
                 isExpanded={expandedProjects.has(project.$id)}
                 onToggleExpanded={() => toggleProjectExpanded(project.$id)}
                 onTaskStatusChange={handleTaskStatusChange}
+                openSheet={openSheet}
               />
             ))}
           </SortableContext>
@@ -390,7 +429,7 @@ export function ProjectTaskList({ projects, tasks }: ProjectTaskManagerProps) {
           {activeId ? (
             projectsData.some((p) => p.$id === activeId) ? (
               <div className="border rounded-lg bg-card shadow-lg p-4 opacity-90">
-                {projectsData.find((p) => p.$id === activeId)?.name}{" "}
+                {projectsData.find((p) => p.$id === activeId)?.title}{" "}
               </div>
             ) : (
               <div className="p-3 ml-6 border rounded-md bg-card shadow-lg">
@@ -401,9 +440,14 @@ export function ProjectTaskList({ projects, tasks }: ProjectTaskManagerProps) {
         </DragOverlay>
       </DndContext>
       <div className="flex justify-end px-6 mb-6">
-        <Button className="w-1/5 bg-accent-1 text-foreground">
-          Add Project
-        </Button>
+        <AuthButtonGuard>
+          <Button
+            className="w-1/5 bg-accent-1 text-foreground"
+            onClick={() => openSheet("project")}
+          >
+            Add Project
+          </Button>
+        </AuthButtonGuard>
       </div>
     </div>
   );

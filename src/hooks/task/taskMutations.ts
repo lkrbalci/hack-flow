@@ -13,6 +13,7 @@ const TASKS_TABLE_ID = process.env.NEXT_PUBLIC_APPWRITE_TASKS_COLLECTION_ID!;
 // Interfaces
 interface CreateTaskData {
   title: string;
+  userId: string;
   projectId: string;
   effortEstimate: number;
   status: "active" | "done";

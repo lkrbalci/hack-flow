@@ -1,26 +1,34 @@
 "use client";
 
 import { DynamicSheet } from "@/components/DynamicSheet/DynamicSheet";
-import { useSheetManager } from "@/hooks/useSheetManager";
+import { SheetData, SheetType, useSheetManager } from "@/hooks/useSheetManager";
 import { TaskForm } from "@/components/forms/TaskForm";
 import { ProjectForm } from "@/components/forms/ProjectForm";
-import { Button } from "@/components/ui/button";
 import { TimeTrackerForm } from "@/components/forms/TimeTrackerForm";
 import { TimeTrackerDisplay } from "@/components/TimeTrackerDisplay/TimeTrackerDisplay";
 import { ProgressTrackerDisplay } from "@/components/ProgressTrackerDisplay/ProgressTrackerDisplay";
 import { ProjectTaskList } from "@/components/ProjectTaskList/ProjectTaskList";
-import { AuthButtonGuard } from "@/components/AuthButtonGuard/AuthButtonGuard";
-import { useLogout } from "@/hooks/useAuthMutations";
 
 import { useProjectsQuery } from "@/hooks/project/projectQueries";
 import { useTasksQuery } from "@/hooks/task/taskQueries";
+import { useUser } from "@/hooks/useUser";
+import { LoginRequiredBanner } from "@/components/LoginRequiredBanner/LoginRequiredBanner";
+import { useLogout } from "@/hooks/useAuthMutations";
 
 export default function Home() {
   const { sheet, openSheet, closeSheet } = useSheetManager();
-  const { mutate: logout, isPending } = useLogout();
 
-  const projectsQuery = useProjectsQuery();
-  const tasksQuery = useTasksQuery();
+  const { user } = useUser();
+  const userId = user?.$id;
+
+  const projectsQuery = useProjectsQuery({
+    enabled: !!user,
+  });
+  const tasksQuery = useTasksQuery({
+    enabled: !!user,
+  });
+
+  const { mutate: logout } = useLogout();
 
   const projects = projectsQuery.data || [];
   const tasks = tasksQuery.data || [];
@@ -36,51 +44,61 @@ export default function Home() {
             Set your time period and watch the progress unfold
           </p>
         </div>
-
-        <TimeTrackerDisplay />
+        {!user && <LoginRequiredBanner />}
         <div className="pt-8"></div>
-        <ProgressTrackerDisplay />
+        <TimeTrackerDisplay
+          userId={userId}
+          openSheet={(type: SheetType) => openSheet(type)}
+        />
+        <div className="pt-8"></div>
+        <ProgressTrackerDisplay tasks={tasks} />
         <div className="pt-8"></div>
 
-        <ProjectTaskList projects={projects} tasks={tasks} />
+        <ProjectTaskList
+          projects={projects}
+          tasks={tasks}
+          openSheet={(type: SheetType, data?: SheetData) =>
+            openSheet(type, data)
+          }
+        />
       </div>
 
-      <DynamicSheet
-        open={sheet.open}
-        onOpenChange={closeSheet}
-        title={
-          sheet.type === "task"
-            ? "Add New Task"
-            : sheet.type === "project"
-            ? "Add New Project"
-            : sheet.type === "time-tracker"
-            ? "Configure Time Tracker"
-            : ""
-        }
-      >
-        {sheet.type === "task" && (
-          <TaskForm onSubmit={closeSheet} onCancel={closeSheet} />
-        )}
-        {sheet.type === "project" && (
-          <ProjectForm onSubmit={closeSheet} onCancel={closeSheet} />
-        )}
-        {sheet.type === "time-tracker" && (
-          <TimeTrackerForm onSubmit={closeSheet} onCancel={closeSheet} />
-        )}
-      </DynamicSheet>
+      {userId && (
+        <DynamicSheet
+          open={sheet.open}
+          onOpenChange={closeSheet}
+          title={
+            sheet.type === "task"
+              ? "Add New Task"
+              : sheet.type === "project"
+              ? "Add New Project"
+              : sheet.type === "time-tracker"
+              ? "Configure Time Tracker"
+              : ""
+          }
+        >
+          {sheet.type === "task" && (
+            <TaskForm
+              closeSheet={closeSheet}
+              projectId={sheet.data?.projectId}
+              userId={userId}
+              tasks={tasks}
+            />
+          )}
+          {sheet.type === "project" && (
+            <ProjectForm
+              projects={projects}
+              userId={userId}
+              closeSheet={closeSheet}
+            />
+          )}
+          {sheet.type === "time-tracker" && (
+            <TimeTrackerForm userId={userId} closeSheet={closeSheet} />
+          )}
+        </DynamicSheet>
+      )}
 
-      <div className="fixed bottom-6 right-6 flex gap-2">
-        <Button onClick={() => openSheet("task")}>Add Task</Button>
-        <Button onClick={() => openSheet("project")}>Add Project</Button>
-        <AuthButtonGuard>
-          <Button onClick={() => openSheet("time-tracker")}>
-            Configure Tracker
-          </Button>
-        </AuthButtonGuard>
-        <Button onClick={() => logout()} disabled={isPending}>
-          Logout
-        </Button>
-      </div>
+      <button onClick={() => logout()}>LogOut</button>
     </main>
   );
 }

@@ -6,14 +6,12 @@ import { toast } from "sonner";
 import { tablesDB } from "@/lib/appwrite";
 import { Project } from "@/types/project";
 
-// Constants
 const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
 const PROJECTS_TABLE_ID =
   process.env.NEXT_PUBLIC_APPWRITE_PROJECTS_COLLECTION_ID!;
 
-// Interfaces
 interface CreateProjectData {
-  name: string;
+  title: string;
   userId: string;
   order: number;
 }
@@ -22,7 +20,6 @@ interface UpdateProjectOrderData {
   projects: Array<{ id: string; order: number }>;
 }
 
-// ✅ Fixed: Proper interface syntax
 interface UpdateProjectData {
   projectId: string;
   data: Partial<Project>; // ✅ Added 'data:' prefix
@@ -56,7 +53,6 @@ const updateProjectOrder = async (data: UpdateProjectOrderData) => {
   return Promise.all(promises);
 };
 
-// ✅ Fixed: Proper parameter destructuring
 const updateProject = async ({ projectId, data }: UpdateProjectData) => {
   return tablesDB.updateRow({
     databaseId: DATABASE_ID,
@@ -74,12 +70,10 @@ const deleteProject = async ({ projectId }: DeleteProjectData) => {
   });
 };
 
-// Shared retry delay helper
 const getRetryDelay = (attemptIndex: number) => {
   return Math.min(1000 * 2 ** attemptIndex, 5000);
 };
 
-// Mutation Hooks
 export function useCreateProject() {
   const queryClient = useQueryClient();
 

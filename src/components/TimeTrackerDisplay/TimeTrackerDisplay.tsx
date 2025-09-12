@@ -2,12 +2,11 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
-import {
-  fetchTimeTrackerConfig,
-  TimeTrackerConfig,
-} from "./timeTrackerMockApi";
+import { useUserTimeTrackerQuery } from "@/hooks/timeTracker/timeTrackerQueries";
 import { DateTime } from "luxon";
+import { Settings } from "lucide-react";
+import { AuthButtonGuard } from "../AuthButtonGuard/AuthButtonGuard";
+import { SheetType } from "@/hooks/useSheetManager";
 
 interface TimeRemaining {
   days: number;
@@ -16,18 +15,16 @@ interface TimeRemaining {
   seconds: number;
 }
 
-export function TimeTrackerDisplay() {
-  const {
-    data: config,
-    isLoading,
-    error,
-  } = useQuery<TimeTrackerConfig>({
-    queryKey: ["timeTrackerConfig"],
-    queryFn: fetchTimeTrackerConfig,
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    refetchOnWindowFocus: false,
-    retry: 1,
-  });
+export function TimeTrackerDisplay({
+  userId,
+  openSheet,
+}: {
+  userId?: string;
+  openSheet: (type: SheetType) => void;
+}) {
+  const { data: timeTracker, isLoading } = useUserTimeTrackerQuery(
+    userId || ""
+  );
 
   const [timeRemaining, setTimeRemaining] = useState<TimeRemaining>({
     days: 0,
@@ -39,17 +36,31 @@ export function TimeTrackerDisplay() {
   const [isExpired, setIsExpired] = useState(false);
 
   const calculateTimeRemaining = useCallback(() => {
-    if (!config) return;
+    if (!timeTracker) return;
 
-    const { startDate, startTime, endDate, endTime, timezone } = config;
+    const { startDate, startTime, endDate, endTime, hackathonTimezone } =
+      timeTracker;
+
+    if (
+      !startDate ||
+      !startTime ||
+      !endDate ||
+      !endTime ||
+      !hackathonTimezone
+    ) {
+      setTimeRemaining({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      setProgress(0);
+      setIsExpired(false);
+      return;
+    }
 
     const startDateTime = DateTime.fromISO(`${startDate}T${startTime}`, {
-      zone: timezone,
+      zone: hackathonTimezone,
     });
     const endDateTime = DateTime.fromISO(`${endDate}T${endTime}`, {
-      zone: timezone,
+      zone: hackathonTimezone,
     });
-    const now = DateTime.now().setZone(timezone);
+    const now = DateTime.now().setZone(hackathonTimezone);
 
     if (!startDateTime.isValid || !endDateTime.isValid) {
       console.error("Invalid date/time");
@@ -82,17 +93,14 @@ export function TimeTrackerDisplay() {
     setTimeRemaining({ days, hours, minutes, seconds });
     setProgress(Math.max(0, Math.min(100, (elapsed / totalDuration) * 100)));
     setIsExpired(false);
-  }, [config]);
+  }, [timeTracker]);
 
   useEffect(() => {
-    if (config) {
-      calculateTimeRemaining();
-      const interval = setInterval(calculateTimeRemaining, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [config, calculateTimeRemaining]);
+    calculateTimeRemaining();
+    const interval = setInterval(calculateTimeRemaining, 1000);
+    return () => clearInterval(interval);
+  }, [calculateTimeRemaining]);
 
-  // Animated Number (same as before)
   const AnimatedNumber = ({
     value,
     label,
@@ -143,21 +151,24 @@ export function TimeTrackerDisplay() {
     );
   }
 
-  if (error || !config) {
-    return (
-      <Card className="bg-panel-bg border-border">
-        <CardContent className="flex items-center justify-center h-40">
-          <p className="text-red-500">Failed to load tracker.</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  const timezone = timeTracker?.hackathonTimezone || "UTC";
+  const title = timeTracker ? "Hackathon Time Tracker" : "Set Up Time Tracker";
 
   return (
-    <Card className="bg-panel-bg border-border" aria-label={config.title}>
+    <Card className="bg-panel-bg border-border" aria-label={title}>
       <CardHeader>
-        <CardTitle className="text-foreground text-center">
-          {isExpired ? "🎉 Time's Up!" : config.title}
+        <CardTitle className="text-foreground  flex gap-4 items-center justify-center">
+          {isExpired ? "🎉 Time's Up!" : title}
+          {!timeTracker && (
+            <AuthButtonGuard>
+              <button
+                onClick={() => openSheet("time-tracker")}
+                className="p-1 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <Settings className="w-5 h-5 text-white" />
+              </button>
+            </AuthButtonGuard>
+          )}
         </CardTitle>
       </CardHeader>
 
@@ -165,9 +176,9 @@ export function TimeTrackerDisplay() {
         <div className="text-center mb-6">
           <p className="text-foreground/70 text-sm">
             {DateTime.now()
-              .setZone(config.timezone)
+              .setZone(timezone)
               .toFormat("EEE, MMM d, yyyy 'at' h:mm a")}{" "}
-            <span className="text-xs">({config.timezone})</span>
+            <span className="text-xs">({timezone})</span>
           </p>
         </div>
 
