@@ -159,16 +159,14 @@ export function TimeTrackerDisplay({
       <CardHeader>
         <CardTitle className="text-foreground  flex gap-4 items-center justify-center">
           {isExpired ? "🎉 Time's Up!" : title}
-          {!timeTracker && (
-            <AuthButtonGuard>
-              <button
-                onClick={() => openSheet("time-tracker")}
-                className="p-1 rounded-full hover:bg-white/10 transition-colors"
-              >
-                <Settings className="w-5 h-5 text-white" />
-              </button>
-            </AuthButtonGuard>
-          )}
+          <AuthButtonGuard>
+            <button
+              onClick={() => openSheet("time-tracker")}
+              className="p-1 rounded-full hover:bg-white/10 transition-colors"
+            >
+              <Settings className="w-5 h-5 text-white" />
+            </button>
+          </AuthButtonGuard>
         </CardTitle>
       </CardHeader>
 

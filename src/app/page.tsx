@@ -38,7 +38,7 @@ export default function Home() {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-2">
-            Time Progress Tracker
+            Hack-Flow Time Progress Tracker
           </h1>
           <p className="text-foreground/70 text-lg">
             Set your time period and watch the progress unfold
