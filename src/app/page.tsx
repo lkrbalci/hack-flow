@@ -28,8 +28,6 @@ export default function Home() {
     enabled: !!user,
   });
 
-  const { mutate: logout } = useLogout();
-
   const projects = projectsQuery.data || [];
   const tasks = tasksQuery.data || [];
 
@@ -97,8 +95,6 @@ export default function Home() {
           )}
         </DynamicSheet>
       )}
-
-      <button onClick={() => logout()}>LogOut</button>
     </main>
   );
 }
