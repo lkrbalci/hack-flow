@@ -13,7 +13,6 @@ import { useProjectsQuery } from "@/hooks/project/projectQueries";
 import { useTasksQuery } from "@/hooks/task/taskQueries";
 import { useUser } from "@/hooks/useUser";
 import { LoginRequiredBanner } from "@/components/LoginRequiredBanner/LoginRequiredBanner";
-import { useLogout } from "@/hooks/useAuthMutations";
 
 export default function Home() {
   const { sheet, openSheet, closeSheet } = useSheetManager();
