@@ -29,6 +29,7 @@ import { Task } from "@/types/task";
 import {
   useUpdateTaskOrder,
   useUpdateTaskStatus,
+  useUpdateTaskEffort,
 } from "@/hooks/task/taskMutations";
 import { useUpdateProjectOrder } from "@/hooks/project/projectMutations";
 import { SheetData, SheetType } from "@/hooks/useSheetManager";
@@ -46,15 +47,21 @@ interface SortableProjectProps {
   isExpanded: boolean;
   onToggleExpanded: () => void;
   onTaskStatusChange: (taskId: string, status: "active" | "done") => void;
+  onEffortChange: (taskId: string, effort: number) => void;
   openSheet: (type: SheetType, data?: SheetData) => void;
 }
 
 interface SortableTaskProps {
   task: Task;
   onStatusChange: (taskId: string, status: "active" | "done") => void;
+  onEffortChange: (taskId: string, effort: number) => void;
 }
 
-function SortableTask({ task, onStatusChange }: SortableTaskProps) {
+function SortableTask({
+  task,
+  onStatusChange,
+  onEffortChange,
+}: SortableTaskProps) {
   const {
     attributes,
     listeners,
@@ -72,8 +79,8 @@ function SortableTask({ task, onStatusChange }: SortableTaskProps) {
     transition,
   };
 
-  const onEffortChange = (taskId: string, newEffort: number) => {
-    console.log(`Update task ${taskId} with effort ${newEffort}`);
+  const onEffortChangeHandler = (newEffort: number) => {
+    onEffortChange(task.$id, newEffort);
   };
 
   return (
@@ -116,12 +123,14 @@ function SortableTask({ task, onStatusChange }: SortableTaskProps) {
             value={tempEffortValue}
             onChange={(e) => setTempEffortValue(e.target.value)}
             onBlur={() => {
-              onEffortChange(task.$id, parseInt(tempEffortValue) || 0);
+              const effort = parseInt(tempEffortValue) || 0;
+              onEffortChangeHandler(effort);
               setIsEditingEffort(false);
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                onEffortChange(task.$id, parseInt(tempEffortValue) || 0);
+                const effort = parseInt(tempEffortValue) || 0;
+                onEffortChangeHandler(effort);
                 setIsEditingEffort(false);
               } else if (e.key === "Escape") {
                 setTempEffortValue(task.effortEstimate?.toString() || "0");
@@ -133,7 +142,7 @@ function SortableTask({ task, onStatusChange }: SortableTaskProps) {
           />
         ) : (
           <div
-            className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-medium cursor-pointer hover:bg-primary/20 transition-colors"
+            className="text-foreground flex items-center gap-2 bg-primary/10 text-primary px-2 py-1 rounded-full text-sm font-medium cursor-pointer hover:bg-primary/20 transition-colors"
             onClick={() => {
               setIsEditingEffort(true);
               setTempEffortValue(task.effortEstimate?.toString() || "0");
@@ -154,6 +163,7 @@ function SortableProject({
   isExpanded,
   onToggleExpanded,
   onTaskStatusChange,
+  onEffortChange,
   openSheet,
 }: SortableProjectProps) {
   const {
@@ -223,7 +233,6 @@ function SortableProject({
           className="px-4 pb-4 space-y-2"
           id={`project-${project.$id}-tasks`}
         >
-          {" "}
           <SortableContext
             items={projectTasks.map((task) => task.$id)}
             strategy={verticalListSortingStrategy}
@@ -233,6 +242,7 @@ function SortableProject({
                 key={task.$id}
                 task={task}
                 onStatusChange={onTaskStatusChange}
+                onEffortChange={onEffortChange}
               />
             ))}
           </SortableContext>
@@ -270,7 +280,8 @@ export function ProjectTaskList({
 }: ProjectTaskManagerProps) {
   const updateProjectOrderMutation = useUpdateProjectOrder();
   const updateTaskOrderMutation = useUpdateTaskOrder();
-  const { mutate: updateTaskStatus } = useUpdateTaskStatus(); // Updated pattern
+  const { mutate: updateTaskStatus } = useUpdateTaskStatus();
+  const { mutate: updateTaskEffort } = useUpdateTaskEffort();
 
   const [projectsData, setProjectsData] = useState(
     [...projects].sort((a, b) => a.order - b.order)
@@ -379,6 +390,19 @@ export function ProjectTaskList({
     [updateTaskStatus]
   );
 
+  const handleEffortChange = useCallback(
+    (taskId: string, effort: number) => {
+      setTasksData((prev) =>
+        prev.map((task) =>
+          task.$id === taskId ? { ...task, effortEstimate: effort } : task
+        )
+      );
+
+      updateTaskEffort({ taskId, effort });
+    },
+    [updateTaskEffort]
+  );
+
   const toggleProjectExpanded = useCallback((projectId: string) => {
     setExpandedProjects((prev) => {
       const newSet = new Set(prev);
@@ -414,6 +438,7 @@ export function ProjectTaskList({
                 isExpanded={expandedProjects.has(project.$id)}
                 onToggleExpanded={() => toggleProjectExpanded(project.$id)}
                 onTaskStatusChange={handleTaskStatusChange}
+                onEffortChange={handleEffortChange}
                 openSheet={openSheet}
               />
             ))}
@@ -429,11 +454,11 @@ export function ProjectTaskList({
           {activeId ? (
             projectsData.some((p) => p.$id === activeId) ? (
               <div className="border rounded-lg bg-card shadow-lg p-4 opacity-90">
-                {projectsData.find((p) => p.$id === activeId)?.title}{" "}
+                {projectsData.find((p) => p.$id === activeId)?.title}
               </div>
             ) : (
               <div className="p-3 ml-6 border rounded-md bg-card shadow-lg">
-                {tasksData.find((t) => t.$id === activeId)?.title}{" "}
+                {tasksData.find((t) => t.$id === activeId)?.title}
               </div>
             )
           ) : null}

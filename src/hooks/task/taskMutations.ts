@@ -272,3 +272,29 @@ export function useDeleteTask() {
     },
   });
 }
+
+export const useUpdateTaskEffort = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      taskId,
+      effort,
+    }: {
+      taskId: string;
+      effort: number;
+    }) => {
+      await tablesDB.updateRow({
+        databaseId: DATABASE_ID,
+        tableId: TASKS_TABLE_ID,
+        rowId: taskId,
+        data: {
+          effortEstimate: effort,
+        },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+};

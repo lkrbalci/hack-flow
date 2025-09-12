@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { AppwriteException } from "appwrite";
 import { toast } from "sonner";
-import { tablesDB } from "@/lib/appwrite";
+import { account, tablesDB } from "@/lib/appwrite";
 import { Task } from "@/types/task";
 import { useEffect } from "react";
 import { Query } from "appwrite";
@@ -12,10 +12,14 @@ const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
 const TASKS_TABLE_ID = process.env.NEXT_PUBLIC_APPWRITE_TASKS_COLLECTION_ID!;
 
 export const fetchTasks = async (): Promise<Task[]> => {
+  const session = await account.get();
+  if (!session) {
+    return [];
+  }
   const response = await tablesDB.listRows({
     databaseId: DATABASE_ID,
     tableId: TASKS_TABLE_ID,
-    queries: [Query.limit(50)],
+    queries: [Query.equal("userId", session.$id), Query.limit(50)],
   });
 
   return response.rows.map((row) => ({

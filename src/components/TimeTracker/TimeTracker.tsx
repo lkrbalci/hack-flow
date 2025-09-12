@@ -51,7 +51,6 @@ export function TimeTracker() {
     "Australia/Sydney",
   ];
 
-  // Set default dates on mount
   useEffect(() => {
     if (!startDate) setStartDate(DateTime.now().toISODate());
     if (!endDate) setEndDate(DateTime.now().plus({ days: 7 }).toISODate());
@@ -198,6 +197,19 @@ export function TimeTracker() {
       </div>
     );
   };
+
+  const endDateTimeInSelectedZone = DateTime.fromISO(`${endDate}T${endTime}`, {
+    zone: timezone,
+  });
+
+  const formattedEndTime = endDateTimeInSelectedZone.isValid
+    ? endDateTimeInSelectedZone.toFormat("MMM d, h:mm a")
+    : "";
+
+  const userTimezoneDisplay =
+    timezone.split("/")[1]?.replace("_", " ") || timezone;
+
+  console.log(formattedEndTime);
 
   return (
     <div className="space-y-8">
@@ -349,6 +361,11 @@ export function TimeTracker() {
                   .toFormat("EEE, MMM d, yyyy 'at' h:mm a")}{" "}
                 ({timezone})
               </p>
+              {formattedEndTime && (
+                <p className="text-lg font-medium text-accent-2 mt-2">
+                  Ends at {formattedEndTime} ({userTimezoneDisplay})
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 text-accent-2 md:grid-cols-4 gap-4 sm:gap-8 mb-8">
